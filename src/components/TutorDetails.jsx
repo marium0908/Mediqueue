@@ -394,7 +394,7 @@ export default function TutorDetails({ tutorId, currentUser, token, onBack, setR
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Mariam Binte Muhammad"
+                    placeholder="e.g. John Doe"
                     value={studentName}
                     onChange={(e) => setStudentName(e.target.value)}
                     className="w-full px-3 py-2 border border-indigo-150 dark:border-indigo-900/45 rounded-lg bg-indigo-100/5 dark:bg-indigo-950/20 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
