@@ -1,0 +1,120 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@variant dark (.dark &);
+
+@theme {
+  /* Sage Green & Cream Theme Colors mapping */
+  --color-slate-50: #FAF9F6;      /* Cream background */
+  --color-slate-100: #F3F1EB;     /* Soft warm tint for hover/neutral light borders */
+  --color-slate-150: #EBE8DE;     /* Light borders and separators */
+  --color-slate-205: #DFDBCF;     /* Accent lines */
+  --color-slate-950: #2E3440;     /* Sage Dark Mode Background (Nord color) */
+  --color-slate-900: #3B4252;     /* Dark Mode Cards (Nord color) */
+  --color-slate-850: #434C5E;     /* Dark Mode Borders (Nord color) */
+  --color-slate-800: #4C566A;     /* Dark Mode Input borders */
+  
+  --color-indigo-50: #F1F4EA;     /* Light sage-green background wash */
+  --color-indigo-100: #E2EAD4;    /* Deeper sage light wash */
+  --color-indigo-200: #D4A373;    /* Cream secondary in light mode */
+  --color-indigo-350: #B2C49F;
+  --color-indigo-400: #A3BE8C;    /* Sage primary in dark mode */
+  --color-indigo-500: #6B8E23;    /* Sage primary */
+  --color-indigo-505: #BC8D5E;    /* Deeper secondary brown-tan */
+  --color-indigo-555: #5B7A1E;    /* Hover primary */
+  --color-indigo-600: #6B8E23;    /* Sage primary in light mode */
+  --color-indigo-650: #58751B;    /* Focused primary */
+  --color-indigo-700: #4B6416;    
+  --color-indigo-950: #212C13;    /* Rich organic dark sage bg wash */
+}
+
+@layer base {
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--color-slate-50);
+    color: var(--color-slate-900);
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+  
+  .font-display {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+  }
+  
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+/* Custom Scrollbar for premium aesthetic */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+/* Form inputs styling help */
+input, select, textarea {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Custom hierarchical overrides for dark mode to preserve typography layout and contrast */
+.dark body {
+  background-color: var(--color-slate-950) !important;
+  color: #ECEFF4 !important;
+}
+
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-705,
+.dark h1,
+.dark h2,
+.dark h3 {
+  color: #ECEFF4 !important; /* Premium bright silver-white for main titles */
+}
+
+.dark .text-slate-700,
+.dark .text-slate-650,
+.dark .text-slate-600,
+.dark .text-slate-505,
+.dark label {
+  color: #D8DEE9 !important; /* Beautiful secondary warm silver for descriptions and labels */
+}
+
+.dark .text-slate-500,
+.dark .text-slate-450,
+.dark .text-slate-400,
+.dark .text-slate-405,
+.dark .text-slate-350,
+.dark .text-slate-300 {
+  color: #AFB6C3 !important; /* Muted silver-gray for secondary subtexts, tags, and small items */
+}
+
+.dark .placeholder-slate-400,
+.dark .placeholder-slate-500,
+.dark ::placeholder {
+  color: #707A8A !important; /* Deep silver-gray for placeholder readability */
+  opacity: 0.9 !important;
+}
+
+/* Make sure icons are high-fidelity and visible */
+.dark svg {
+  stroke: currentColor;
+}
+.dark .text-slate-400 svg,
+.dark .text-slate-500 svg {
+  color: #D8DEE9 !important;
+}
+
+
