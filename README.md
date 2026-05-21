@@ -64,25 +64,7 @@ Whether you're preparing for exams, improving academic performance, or learning 
 
 ---
 
-## 🚀 Technologies Used
 
-### Frontend
-- React.js
-- Vite
-- Tailwind CSS
-- React Router DOM
-- Framer Motion
-
-### Backend
-- Node.js
-- Express.js
-- JWT Authentication
-
-### Database & Authentication
-- Firebase Firestore
-- Firebase Authentication
-
----
 
 ## 🎯 Project Goals
 
