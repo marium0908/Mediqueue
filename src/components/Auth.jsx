@@ -6,10 +6,10 @@ import { motion } from "motion/react";
 export default function Auth({ mode, onAuthSuccess, setRoute }) {
   const toast = useToast();
   const [isLogin, setIsLogin] = useState(mode === "login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [photoUrl, setPhotoUrl] = useState("");
+  const [email, setEmail] = useState("johndoe@gmail.com");
+  const [password, setPassword] = useState("Password123");
+  const [name, setName] = useState("John Doe");
+  const [photoUrl, setPhotoUrl] = useState("https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150");
   const [isLoading, setIsLoading] = useState(false);
   const [passwordError, setPasswordError] = useState("");
 
@@ -85,18 +85,18 @@ export default function Auth({ mode, onAuthSuccess, setRoute }) {
     }
   };
 
-  // Google OAuth Simulation
-  const handleGoogleLogin = async () => {
-    setIsLoading(true);
-    // Ask user or generate custom simulated account for immediate frictionless grading
-    const mockGoogleAccounts = [
-      { name: "Mariam Binte Muhammad", email: "mariumbintemuhammad@gmail.com", photoUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150" },
-      { name: "John Harvard", email: "john_harvard@gmail.com", photoUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150" },
-      { name: "Jane Smith", email: "janesmith@gmail.com", photoUrl: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=150" }
-    ];
+    // Google OAuth Simulation
+    const handleGoogleLogin = async () => {
+      setIsLoading(true);
+      // Ask user or generate custom simulated account for immediate frictionless grading
+      const mockGoogleAccounts = [
+        { name: "John Doe", email: "johndoe@gmail.com", photoUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150" },
+        { name: "John Harvard", email: "john_harvard@gmail.com", photoUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150" },
+        { name: "Jane Smith", email: "janesmith@gmail.com", photoUrl: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=150" }
+      ];
 
-    // Pick one or let user select
-    const selectedAccount = mockGoogleAccounts[0]; // defaults to Mariam or randomly simulated
+      // Pick one or let user select
+      const selectedAccount = mockGoogleAccounts[0]; // defaults to John Doe or randomly simulated
 
     try {
       const res = await fetch("/api/auth/google", {
@@ -160,7 +160,7 @@ export default function Auth({ mode, onAuthSuccess, setRoute }) {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Mariam Binte Muhammad"
+                  placeholder="e.g. John Doe"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="appearance-none rounded-lg relative block w-full px-3 py-2.5 border border-slate-250 dark:border-slate-750 placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-transparent text-sm"
