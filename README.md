@@ -1,35 +1,130 @@
-# MediQueue – Tutor Booking System
+<img width="1920" height="4975" alt="screencapture-localhost-3000-2026-05-20-13_50_03" src="https://github.com/user-attachments/assets/683ed5c6-c751-45ce-aabd-e397c90f35e0" />
 
-Welcome to **MediQueue**, a specialized tutor reservation and scheduling platform designed to connect ambitious student cohorts directly with certified university mentors and expert facilitators.
 
-## 🚀 Live Site Link & Deployment Pathways
-- **Preview / Production URL**: [https://ais-dev-vk3pyhwhdvgv7mtyw7gp5o-710385799111.asia-east1.run.app](https://ais-dev-vk3pyhwhdvgv7mtyw7gp5o-710385799111.asia-east1.run.app)
-- **Shared Workspace URL**: [https://ais-pre-vk3pyhwhdvgv7mtyw7gp5o-710385799111.asia-east1.run.app](https://ais-pre-vk3pyhwhdvgv7mtyw7gp5o-710385799111.asia-east1.run.app)
+# 🎓 MediQueue – Smart Tutor Booking Platform
 
----
+MediQueue is an innovative tutor booking platform designed to make learning more accessible, organized, and efficient. The application allows students to discover experienced tutors, schedule sessions based on availability, and manage their bookings through a secure and intuitive interface.
 
-## ✨ Primary Website Features & Architectural Landmarks
-
-* **🔒 Secure Session Safeguards & JWT Sign-ins**  
-  Fully managed web-tokens (JWT) authenticate and encrypt private student action pathways, dynamically stored in browser memory with support for password integrity checks and Google Social Login simulations.
-
-* **🎯 Dynamic Counter and Zero-Reload Seat Reductions**  
-  An interactive checkout system automatically decreases other slot capacities in real-time as soon as a student successfully confirms a booking, protecting schedules and preventing overbooking without requiring page refreshes.
-
-* **📅 Session Timeline Gate Controls**  
-  Hardcoded security checks automatically block session enrollments when the system's operational date precedes a tutor's designated session start, displaying friendly cautionary banners (e.g., *"Booking is not available yet for this tutor"*).
-
-* **🔍 Case-Insensitive Regex Queries & Date Filtering**  
-  Advanced directory search bars allow real-time regex filter capabilities inside the MongoDB Atlas backend, alongside twin timeline filters (using `$gte` and `$lte` bounds) to match tutor availability precisely.
-
-* **🌗 Immersive Theme Toggling & Dynamic Titles**  
-  Features an elegant dual-theme canvas system (Light Mode and Dark Slate Mode) embedded cleanly into the global nav, accompanied by dynamic tab updates that adapt the browser title instantaneously on page changes.
+Whether you're preparing for exams, improving academic performance, or learning new skills, MediQueue helps you connect with the right tutor at the right time.
 
 ---
 
-## 🛠️ Tech Stack & Key Libraries Used
+## 🌐 Live Website
 
-- **Frontend**: React 19 (Vite), Tailwind CSS v4 layout controls, Lucide Icons, and Motion for animation transitions.
-- **Backend**: custom Express.js server bundled to single standalone CommonJS via esbuild.
-- **Database**: MongoDB Atlas client driver supporting secure lazy connections with beautiful in-memory fallbacks.
-"# Mediqueue" 
+🔗https://mediqueue-beige.vercel.app/
+ 
+
+---
+
+## 📌 Key Features
+
+### 🔐 Secure User Authentication
+- Email and Password Login
+- Google Sign-In Integration
+- Protected Routes with JWT Authentication
+- Persistent Login Sessions
+
+### 👨‍🏫 Tutor Discovery System
+- Browse available tutors by subject
+- View detailed tutor information
+- Check tutor availability and teaching modes
+- Explore tutor experience and institution details
+
+### 📅 Smart Booking Management
+- Book tutoring sessions instantly
+- Auto-generated booking status
+- Automatic slot availability updates
+- Prevents overbooking when slots are full
+
+### 🔎 Search & Filter Functionality
+- Search tutors by name
+- Case-insensitive search support
+- Filter tutors by session dates
+- Fast and responsive tutor discovery
+
+### 📚 Personalized Dashboard
+- View all booked sessions
+- Monitor booking status
+- Cancel sessions with confirmation
+- Manage learning schedules efficiently
+
+### ✏️ Tutor Management
+- Add new tutor services
+- Update tutor information
+- Delete tutor listings
+- Manage session schedules and fees
+
+### 🌙 Enhanced User Experience
+- Dark and Light Theme Support
+- Responsive Design for all devices
+- Smooth Navigation Experience
+- Dynamic Page Titles
+- Custom Toast Notifications
+- Loading Spinners and Error Handling
+
+---
+
+## 🚀 Technologies Used
+
+### Frontend
+- React.js
+- Vite
+- Tailwind CSS
+- React Router DOM
+- Framer Motion
+
+### Backend
+- Node.js
+- Express.js
+- JWT Authentication
+
+### Database & Authentication
+- Firebase Firestore
+- Firebase Authentication
+
+---
+
+## 🎯 Project Goals
+
+The primary goal of MediQueue is to eliminate manual scheduling difficulties and provide students with a centralized platform where they can easily find tutors, book sessions, and manage their learning activities. The platform focuses on simplicity, security, and efficiency while delivering a modern user experience.
+
+---
+
+## ✅ Features Implemented
+
+✔ User Registration & Login  
+✔ Google Authentication  
+✔ JWT Authorization  
+✔ Tutor CRUD Operations  
+✔ Session Booking System  
+✔ Slot Management System  
+✔ Tutor Search & Filtering  
+✔ Protected Routes  
+✔ Dynamic Website Titles  
+✔ Dark / Light Theme Toggle  
+✔ Responsive Layout  
+✔ Loading Spinner  
+✔ Toast Notifications  
+✔ Custom 404 Page  
+✔ Error Handling
+
+---
+
+## 💻 Responsive Design
+
+MediQueue is fully optimized for:
+
+- 📱 Mobile Devices
+- 📲 Tablets
+- 💻 Laptops
+- 🖥️ Desktop Screens
+
+---
+
+## 🌟 Why Choose MediQueue?
+
+MediQueue offers a modern solution for tutor discovery and booking management. With its clean design, secure authentication system, automated booking workflow, and responsive user interface, it provides a seamless experience for both students and tutors.
+
+---
+
+### ❤️ Built with dedication to make learning more accessible, organized, and efficient.
