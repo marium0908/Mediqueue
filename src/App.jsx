@@ -467,7 +467,7 @@ function RootAppContent() {
             <div className="space-y-1.5 text-[11px] text-slate-450">
               <p className="flex items-center gap-1.5">
                 <Mail className="h-3.5 w-3.5 text-slate-405" />
-                <span>mariumbintemuhammad@gmail.com</span>
+                <span>johndoe@gmail.com</span>
               </p>
               <p className="flex items-center gap-1.5">
                 <Phone className="h-3.5 w-3.5 text-slate-405" />
