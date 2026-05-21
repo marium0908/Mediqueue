@@ -1,4 +1,6 @@
 <img width="1920" height="4975" alt="screencapture-localhost-3000-2026-05-20-13_50_03" src="https://github.com/user-attachments/assets/683ed5c6-c751-45ce-aabd-e397c90f35e0" />
+
+
 # 🎓 MediQueue – Smart Tutor Booking Platform
 
 MediQueue is an innovative tutor booking platform designed to make learning more accessible, organized, and efficient. The application allows students to discover experienced tutors, schedule sessions based on availability, and manage their bookings through a secure and intuitive interface.
