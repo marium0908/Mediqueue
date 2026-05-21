@@ -102,6 +102,20 @@ MediQueue is fully optimized for:
 - 🖥️ Desktop Screens
 
 ---
+##  🚀 Technologies Used
+Frontend
+React.js
+Vite
+Tailwind CSS
+React Router DOM
+Framer Motion
+Backend
+Node.js
+Express.js
+JWT Authentication
+Database & Authentication
+Firebase Firestore
+Firebase Authentication
 
 ## 🌟 Why Choose MediQueue?
 
