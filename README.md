@@ -1,4 +1,5 @@
-<img width="1920" height="4975" alt="screencapture-localhost-3000-2026-05-20-13_50_03" src="https://github.com/user-attachments/assets/683ed5c6-c751-45ce-aabd-e397c90f35e0" />
+<img width="930" height="2048" alt="c9000573-ee76-4dc3-92e8-b33e0d597bf3" src="https://github.com/user-attachments/assets/1eae90c6-ffe8-45a1-a44c-1179a1d6cecd" />
+
 
 
 # 🎓 MediQueue – Smart Tutor Booking Platform
