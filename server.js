@@ -149,10 +149,10 @@ const BOOKINGS_FILE = path.join(process.cwd(), "bookings-fallback.json");
 const SEED_USERS = [
   {
     _id: "user_seed_01",
-    name: "Marium Binte Muhammad",
-    email: "mariumbintemuhammad@gmail.com",
-    passwordHash: "Password123",
-    photoUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150"
+    name: "Student Scholar",
+    email: "student@example.com",
+    passwordHash: "password123",
+    photoUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150"
   },
   {
     _id: "user_seed_02",
