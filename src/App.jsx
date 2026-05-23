@@ -325,18 +325,18 @@ function RootAppContent() {
                   </AnimatePresence>
                 </div>
               ) : (
-                /* Dual Auth Entry Buttons */
-                <div className="hidden sm:flex items-center gap-2">
+                /* Dual Auth Entry Buttons - Always visible & optimized for all devices */
+                <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => setRoute("login")}
-                    className="inline-flex items-center gap-1 px-3.5 py-1.5 border border-slate-205 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-850/50 text-xs font-semibold rounded-lg transition duration-150"
+                    className="inline-flex items-center gap-1 px-2 py-1.5 sm:px-3 sm:py-1.5 border border-slate-205 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-850/50 text-[11px] sm:text-xs font-semibold rounded-lg transition duration-150"
                   >
-                    <LogIn className="h-3.5 w-3.5" />
+                    <LogIn className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                     <span>Log In</span>
                   </button>
                   <button
                     onClick={() => setRoute("register")}
-                    className="inline-flex items-center gap-1 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg shadow-sm cursor-pointer transition duration-150"
+                    className="inline-flex items-center gap-1 px-2 py-1.5 sm:px-3 sm:py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] sm:text-xs font-semibold rounded-lg shadow-sm cursor-pointer transition duration-150"
                   >
                     <UserPlus className="h-3.5 w-3.5" />
                     <span>Sign Up</span>
