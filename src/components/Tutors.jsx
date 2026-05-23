@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Tutor } from "../types";
+import { Tutor, CLIENT_SEED_TUTORS } from "../types";
 import { Search, Calendar, RefreshCw, AlertCircle, Sparkles, BookOpen } from "lucide-react";
 
 export default function Tutors({ onSelectTutor }) {
@@ -12,7 +12,7 @@ export default function Tutors({ onSelectTutor }) {
   const fetchTutors = () => {
     setIsLoading(true);
     let url = "/api/tutors";
-    const params = [];
+    const params = ["offset=6"];
     if (searchQuery) params.push(`search=${encodeURIComponent(searchQuery)}`);
     if (startDate) params.push(`startDate=${encodeURIComponent(startDate)}`);
     if (endDate) params.push(`endDate=${encodeURIComponent(endDate)}`);
@@ -27,11 +27,45 @@ export default function Tutors({ onSelectTutor }) {
         return res.json();
       })
       .then((data) => {
-        setTutors(data);
+        if (data && data.length > 0) {
+          setTutors(data);
+        } else {
+          // Client-side search & date filter fallback starting from tutor 7 onwards
+          let results = CLIENT_SEED_TUTORS.slice(6);
+          if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            results = results.filter(t => 
+              (t.name && t.name.toLowerCase().includes(q)) || 
+              (t.subject && t.subject.toLowerCase().includes(q))
+            );
+          }
+          if (startDate) {
+            results = results.filter(t => t.sessionStartDate >= startDate);
+          }
+          if (endDate) {
+            results = results.filter(t => t.sessionStartDate <= endDate);
+          }
+          setTutors(results);
+        }
         setIsLoading(false);
       })
       .catch((err) => {
-        console.error("Filter tutors error:", err);
+        console.error("Filter tutors error, falling back locally:", err);
+        let results = CLIENT_SEED_TUTORS.slice(6);
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase();
+          results = results.filter(t => 
+            (t.name && t.name.toLowerCase().includes(q)) || 
+            (t.subject && t.subject.toLowerCase().includes(q))
+          );
+        }
+        if (startDate) {
+          results = results.filter(t => t.sessionStartDate >= startDate);
+        }
+        if (endDate) {
+          results = results.filter(t => t.sessionStartDate <= endDate);
+        }
+        setTutors(results);
         setIsLoading(false);
       });
   };
