@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Tutor, User } from "../types";
+import { Tutor, User, CLIENT_SEED_TUTORS } from "../types";
 import { useToast } from "./Toast";
 import { ChevronLeft, GraduationCap, Clock, Globe, Shield, CreditCard, Landmark, Check, AlertTriangle, Sparkles, UserCheck, PhoneCall } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -28,11 +28,18 @@ export default function TutorDetails({ tutorId, currentUser, token, onBack, setR
         return res.json();
       })
       .then((data) => {
-        setTutor(data);
+        if (data) {
+          setTutor(data);
+        } else {
+          const localMatch = CLIENT_SEED_TUTORS.find(t => t._id === tutorId);
+          setTutor(localMatch || null);
+        }
         setIsLoading(false);
       })
       .catch((err) => {
-        toast.error("Error loading tutor. Please retry.");
+        console.error("fetchTutorDetails error, falling back locally:", err);
+        const localMatch = CLIENT_SEED_TUTORS.find(t => t._id === tutorId);
+        setTutor(localMatch || null);
         setIsLoading(false);
       });
   };
@@ -307,7 +314,15 @@ export default function TutorDetails({ tutorId, currentUser, token, onBack, setR
 
               <button
                 disabled={isDateRestricted || isSlotRestricted}
-                onClick={() => setShowModal(true)}
+                onClick={() => {
+                  if (!token) {
+                    toast.info("Please log in or register a free student account to secure slot reservations.");
+                    setRoute("login");
+                    window.location.hash = "/login";
+                    return;
+                  }
+                  setShowModal(true);
+                }}
                 className="w-full sm:w-auto py-3 px-8 bg-indigo-600 hover:bg-indigo-555 text-white font-semibold rounded-lg text-sm transition duration-150 shadow-md hover:scale-[1.02] disabled:opacity-50 disabled:scale-100 cursor-pointer"
               >
                 Book Session Now
