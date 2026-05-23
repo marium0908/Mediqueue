@@ -10,7 +10,7 @@ dotenv.config();
 
 const PORT = 3000;
 const JWT_SECRET = process.env.JWT_SECRET || "BnGh2XOxNCD9K1vbzSWu39dxyWAfGdqQ";
-const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || "mongodb+srv://mediqueue:wuMgppE6f7kO5VVd@portfolio.65qff4k.mongodb.net/?appName=portfolio";
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || "";
 const DB_NAME = process.env.MONGODB_DB || "portfolio_mediqueue";
 
 // Create Express app
@@ -231,6 +231,9 @@ let lastConnectionAttempt = 0;
 const RECONNECT_THROTTLE_MS = 30000; // block retry path for 30s top to prevent test timeouts on offline DBs
 
 async function getMongoDB() {
+  if (!MONGO_URI) {
+    return null;
+  }
   const now = Date.now();
   if (!mongoClient && lastConnectionError && (now - lastConnectionAttempt < RECONNECT_THROTTLE_MS)) {
     // DB is offline/unreachable; immediately return null memory-fallback to respond in 0ms to grading runners
