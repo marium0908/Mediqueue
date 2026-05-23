@@ -12,7 +12,6 @@ export default function Auth({ mode, onAuthSuccess, setRoute }) {
   const [photoUrl, setPhotoUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [passwordError, setPasswordError] = useState("");
-  const [simulatedGoogleEmail, setSimulatedGoogleEmail] = useState("mariumbintemuhammad@gmail.com");
 
   useEffect(() => {
     setIsLogin(mode === "login");
@@ -81,48 +80,28 @@ export default function Auth({ mode, onAuthSuccess, setRoute }) {
     }
   };
 
-    // Google OAuth Simulation
-    const handleGoogleLogin = async () => {
-      setIsLoading(true);
-
-      // Dynamically use the entered email if provided in the input, otherwise fallback to the selected simulated email
-      const activeEmail = email.trim() || simulatedGoogleEmail;
-      
-      const mockGoogleAccounts = [
-        { name: "Marium Binte Muhammad", email: "mariumbintemuhammad@gmail.com", photoUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150" },
-        { name: "John Doe", email: "johndoe@gmail.com", photoUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150" },
-        { name: "John Harvard", email: "john_harvard@gmail.com", photoUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150" },
-        { name: "Jane Smith", email: "janesmith@gmail.com", photoUrl: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=150" }
-      ];
-
-      let selectedAccount = mockGoogleAccounts.find(acc => acc.email.toLowerCase() === activeEmail.toLowerCase());
-      
-      if (!selectedAccount) {
-        // Generate a clean custom account for ANY custom email/domain entered in the form
-        const fallbackName = name.trim() || activeEmail.split("@")[0].split(".")[0].replace(/[^a-zA-Z]/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-        selectedAccount = {
-          name: fallbackName || "Google Scholar User",
-          email: activeEmail,
-          photoUrl: photoUrl.trim() || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150"
-        };
-      }
-
+  const handleGoogleAction = async () => {
+    setIsLoading(true);
     try {
       const res = await fetch("/api/auth/google", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(selectedAccount),
+        body: JSON.stringify({
+          name: "Guest Scholar",
+          email: "scholar.guest@example.com",
+          photoUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150"
+        }),
       });
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.message || "Google Social Login simulation failed");
+        throw new Error(data.message || "Google single sign-on simulation failed");
       }
 
-      toast.success(`Successfully logged in using Google: ${data.user.name}`);
+      toast.success(`Welcome back, ${data.user.name || "Scholar Guest"}! Successfully logged in via Google.`);
       onAuthSuccess(data.token, data.user);
     } catch (err) {
-      toast.error(err.message || "Google authentication simulated error.");
+      toast.error(err.message || "Google Authenticate error.");
     } finally {
       setIsLoading(false);
     }
@@ -267,38 +246,30 @@ export default function Auth({ mode, onAuthSuccess, setRoute }) {
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-white dark:bg-slate-900 px-3 text-slate-400 dark:text-slate-500 font-medium">
-                Fast Grading Social Sign-in
+                Or Continue With
               </span>
             </div>
           </div>
 
-          <div className="mt-4 space-y-3">
-            <div className="space-y-1 text-center">
-              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500 block">
-                Select Google Account Profile
-              </label>
-              <select
-                value={simulatedGoogleEmail}
-                onChange={(e) => setSimulatedGoogleEmail(e.target.value)}
-                className="w-full text-xs px-3 py-2 border border-slate-200 dark:border-slate-850 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="mariumbintemuhammad@gmail.com">Marium Binte Muhammad (mariumbintemuhammad@gmail.com)</option>
-                <option value="johndoe@gmail.com">John Doe (johndoe@gmail.com)</option>
-                <option value="john_harvard@gmail.com">John Harvard (john_harvard@gmail.com)</option>
-                <option value="janesmith@gmail.com">Jane Smith (janesmith@gmail.com)</option>
-              </select>
-            </div>
-
+          <div className="mt-4">
             <button
-              onClick={handleGoogleLogin}
+              type="button"
+              onClick={handleGoogleAction}
               disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-705 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-850 font-medium text-sm transition duration-150 cursor-pointer"
+              className="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 font-medium text-sm transition duration-150 cursor-pointer shadow-xs"
             >
               <Chrome className="h-4 w-4 text-rose-500" />
-              <span>Continue with Google Account</span>
+              <span>{isLogin ? "Sign in with Google" : "Sign up with Google"}</span>
             </button>
           </div>
         </div>
+
+        {isLogin && (
+          <div className="mt-4 p-3 bg-indigo-50/80 dark:bg-indigo-950/40 rounded-xl border border-indigo-100/50 dark:border-indigo-900/40 text-center text-[11px] text-indigo-700/90 dark:text-indigo-300">
+            <span className="font-semibold block mb-0.5">💡 Demo Access Credentials</span>
+            <span>Email: <strong className="font-mono bg-indigo-100 dark:bg-indigo-950/80 px-1 py-0.5 rounded text-slate-800 dark:text-indigo-200">student@example.com</strong> | Pass: <strong className="font-mono bg-indigo-100 dark:bg-indigo-950/80 px-1 py-0.5 rounded text-slate-800 dark:text-indigo-200">password123</strong></span>
+          </div>
+        )}
       </motion.div>
     </div>
   );
