@@ -122,8 +122,99 @@ const SEED_TUTORS = [
     teachingMode: "Both",
     createdByUserEmail: "admin@mediqueue.org",
     createdByUserName: "Admin Director"
+  },
+  {
+    _id: "tutor_08",
+    name: "Prof. Jessica Vance",
+    photoUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=400",
+    subject: "Biology",
+    availableDays: "Tue - Thu",
+    availableTime: "2:00 PM - 5:00 PM",
+    hourlyFee: 52,
+    totalSlots: 6,
+    sessionStartDate: "2026-06-08",
+    institution: "Yale University",
+    experience: "11 years",
+    location: "New Haven",
+    teachingMode: "Online",
+    createdByUserEmail: "admin@mediqueue.org",
+    createdByUserName: "Admin Director"
+  },
+  {
+    _id: "tutor_09",
+    name: "Daniel Thorne",
+    photoUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400",
+    subject: "Physics",
+    availableDays: "Fri - Sat",
+    availableTime: "3:00 PM - 6:00 PM",
+    hourlyFee: 47,
+    totalSlots: 5,
+    sessionStartDate: "2026-06-11",
+    institution: "Princeton University",
+    experience: "6 years",
+    location: "Princeton",
+    teachingMode: "Both",
+    createdByUserEmail: "admin@mediqueue.org",
+    createdByUserName: "Admin Director"
+  },
+  {
+    _id: "tutor_10",
+    name: "Dr. Maria Santos",
+    photoUrl: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=400",
+    subject: "Chemistry",
+    availableDays: "Mon - Wed",
+    availableTime: "1:00 PM - 4:00 PM",
+    hourlyFee: 46,
+    totalSlots: 4,
+    sessionStartDate: "2026-06-02",
+    institution: "Caltech",
+    experience: "9 years",
+    location: "Pasadena",
+    teachingMode: "Offline",
+    createdByUserEmail: "admin@mediqueue.org",
+    createdByUserName: "Admin Director"
+  },
+  {
+    _id: "tutor_11",
+    name: "Liam O'Connor",
+    photoUrl: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=400",
+    subject: "Computer Science",
+    availableDays: "Sat - Sun",
+    availableTime: "4:00 PM - 7:00 PM",
+    hourlyFee: 58,
+    totalSlots: 7,
+    sessionStartDate: "2026-05-30",
+    institution: "University of Cambridge",
+    experience: "5 years",
+    location: "Cambridge",
+    teachingMode: "Online",
+    createdByUserEmail: "admin@mediqueue.org",
+    createdByUserName: "Admin Director"
+  },
+  {
+    _id: "tutor_12",
+    name: "Dr. Chloe Dupont",
+    photoUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=400",
+    subject: "Other",
+    availableDays: "Mon - Thu",
+    availableTime: "9:00 AM - 12:00 PM",
+    hourlyFee: 42,
+    totalSlots: 3,
+    sessionStartDate: "2026-06-15",
+    institution: "Sorbonne University",
+    experience: "10 years",
+    location: "Paris",
+    teachingMode: "Both",
+    createdByUserEmail: "admin@mediqueue.org",
+    createdByUserName: "Admin Director"
   }
 ];
+
+// Forces refresh of local db on load if updated
+const currentStored = localStorage.getItem("mock_tutors");
+if (!currentStored || JSON.parse(currentStored).length < 12) {
+  localStorage.setItem("mock_tutors", JSON.stringify(SEED_TUTORS));
+}
 
 // Helper functions for getting and setting localStorage database tables
 function getStorage(key, defaultVal = []) {
@@ -145,7 +236,18 @@ function setStorage(key, val) {
 
 // Ensure database state is fully bootstrapped
 getStorage("mock_tutors", SEED_TUTORS);
-getStorage("mock_users", []);
+const initialUsers = getStorage("mock_users", []);
+if (initialUsers.length === 0) {
+  const defaultStudent = {
+    _id: "user_student",
+    name: "Student Scholar",
+    email: "student@example.com",
+    passwordHash: "password123",
+    photoUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150",
+    createdAt: new Date().toISOString()
+  };
+  setStorage("mock_users", [defaultStudent]);
+}
 getStorage("mock_bookings", []);
 
 // Intercept window.fetch!
@@ -226,12 +328,10 @@ const customFetch = async function (input, init = {}) {
         return mockError("Please provide all required fields");
       }
 
-      const hasUpper = /[A-Z]/.test(password);
-      const hasLower = /[a-z]/.test(password);
-      const isValidLength = password.length >= 6;
+      const isValidLength = password && password.length >= 6;
 
-      if (!hasUpper || !hasLower || !isValidLength) {
-        return mockError("Password does not meet safety criteria (must be >= 6 chars, have uppercase and lowercase)");
+      if (!isValidLength) {
+        return mockError("Password does not meet safety criteria (must be at least 6 characters long)");
       }
 
       const users = getStorage("mock_users");
@@ -330,6 +430,7 @@ const customFetch = async function (input, init = {}) {
       const startDate = searchParams.get("startDate");
       const endDate = searchParams.get("endDate");
       const limit = searchParams.get("limit");
+      const offset = searchParams.get("offset");
 
       let list = getStorage("mock_tutors", SEED_TUTORS);
 
@@ -344,6 +445,10 @@ const customFetch = async function (input, init = {}) {
 
       if (endDate) {
         list = list.filter(t => t.sessionStartDate <= endDate);
+      }
+
+      if (offset) {
+        list = list.slice(parseInt(offset, 10));
       }
 
       if (limit) {
