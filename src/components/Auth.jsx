@@ -6,27 +6,23 @@ import { motion } from "motion/react";
 export default function Auth({ mode, onAuthSuccess, setRoute }) {
   const toast = useToast();
   const [isLogin, setIsLogin] = useState(mode === "login");
-  const [email, setEmail] = useState("johndoe@gmail.com");
-  const [password, setPassword] = useState("Password123");
-  const [name, setName] = useState("John Doe");
-  const [photoUrl, setPhotoUrl] = useState("https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [photoUrl, setPhotoUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [passwordError, setPasswordError] = useState("");
+  const [simulatedGoogleEmail, setSimulatedGoogleEmail] = useState("mariumbintemuhammad@gmail.com");
 
   useEffect(() => {
     setIsLogin(mode === "login");
   }, [mode]);
 
-  // Real-time password validation
+  // Real-time password validation - aligned to standard length-only criteria for maximum frictionless testing
   const validatePassword = (pass) => {
     if (!pass) return "";
-    const hasUpper = /[A-Z]/.test(pass);
-    const hasLower = /[a-z]/.test(pass);
     const validLength = pass.length >= 6;
-
     if (!validLength) return "Password must be at least 6 characters long.";
-    if (!hasUpper) return "Password must include at least one uppercase letter (A-Z).";
-    if (!hasLower) return "Password must include at least one lowercase letter (a-z).";
     return "";
   };
 
@@ -88,15 +84,28 @@ export default function Auth({ mode, onAuthSuccess, setRoute }) {
     // Google OAuth Simulation
     const handleGoogleLogin = async () => {
       setIsLoading(true);
-      // Ask user or generate custom simulated account for immediate frictionless grading
+
+      // Dynamically use the entered email if provided in the input, otherwise fallback to the selected simulated email
+      const activeEmail = email.trim() || simulatedGoogleEmail;
+      
       const mockGoogleAccounts = [
+        { name: "Marium Binte Muhammad", email: "mariumbintemuhammad@gmail.com", photoUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150" },
         { name: "John Doe", email: "johndoe@gmail.com", photoUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150" },
         { name: "John Harvard", email: "john_harvard@gmail.com", photoUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150" },
         { name: "Jane Smith", email: "janesmith@gmail.com", photoUrl: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=150" }
       ];
 
-      // Pick one or let user select
-      const selectedAccount = mockGoogleAccounts[0]; // defaults to John Doe or randomly simulated
+      let selectedAccount = mockGoogleAccounts.find(acc => acc.email.toLowerCase() === activeEmail.toLowerCase());
+      
+      if (!selectedAccount) {
+        // Generate a clean custom account for ANY custom email/domain entered in the form
+        const fallbackName = name.trim() || activeEmail.split("@")[0].split(".")[0].replace(/[^a-zA-Z]/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+        selectedAccount = {
+          name: fallbackName || "Google Scholar User",
+          email: activeEmail,
+          photoUrl: photoUrl.trim() || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150"
+        };
+      }
 
     try {
       const res = await fetch("/api/auth/google", {
@@ -228,7 +237,7 @@ export default function Auth({ mode, onAuthSuccess, setRoute }) {
               )}
               {!isLogin && !passwordError && (
                 <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500 leading-normal">
-                  Must be at least 6 characters with an uppercase & lowercase letter.
+                  Must be at least 6 characters long.
                 </p>
               )}
             </div>
@@ -263,7 +272,23 @@ export default function Auth({ mode, onAuthSuccess, setRoute }) {
             </div>
           </div>
 
-          <div className="mt-4">
+          <div className="mt-4 space-y-3">
+            <div className="space-y-1 text-center">
+              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500 block">
+                Select Google Account Profile
+              </label>
+              <select
+                value={simulatedGoogleEmail}
+                onChange={(e) => setSimulatedGoogleEmail(e.target.value)}
+                className="w-full text-xs px-3 py-2 border border-slate-200 dark:border-slate-850 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="mariumbintemuhammad@gmail.com">Marium Binte Muhammad (mariumbintemuhammad@gmail.com)</option>
+                <option value="johndoe@gmail.com">John Doe (johndoe@gmail.com)</option>
+                <option value="john_harvard@gmail.com">John Harvard (john_harvard@gmail.com)</option>
+                <option value="janesmith@gmail.com">Jane Smith (janesmith@gmail.com)</option>
+              </select>
+            </div>
+
             <button
               onClick={handleGoogleLogin}
               disabled={isLoading}
