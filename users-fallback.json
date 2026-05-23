@@ -1,0 +1,30 @@
+[
+  {
+    "_id": "user_seed_01",
+    "name": "Student Scholar",
+    "email": "student@example.com",
+    "passwordHash": "password123",
+    "photoUrl": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150"
+  },
+  {
+    "_id": "user_seed_02",
+    "name": "John Doe",
+    "email": "johndoe@gmail.com",
+    "passwordHash": "Password123",
+    "photoUrl": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150"
+  },
+  {
+    "_id": "user_seed_03",
+    "name": "John Harvard",
+    "email": "john_harvard@gmail.com",
+    "passwordHash": "Password123",
+    "photoUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150"
+  },
+  {
+    "_id": "user_seed_04",
+    "name": "Jane Smith",
+    "email": "janesmith@gmail.com",
+    "passwordHash": "Password123",
+    "photoUrl": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=150"
+  }
+]
