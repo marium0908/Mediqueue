@@ -45,10 +45,22 @@ function RootAppContent() {
   };
 
   // 2. Authentication states holding JWT token & user credentials
-  const [token, setToken] = useState(() => localStorage.getItem("medi_token"));
+  const [token, setToken] = useState(() => {
+    try {
+      const saved = localStorage.getItem("medi_token");
+      return saved && saved !== "undefined" ? saved : null;
+    } catch {
+      return null;
+    }
+  });
+
   const [currentUser, setCurrentUser] = useState(() => {
-    const saved = localStorage.getItem("medi_user");
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem("medi_user");
+      return saved && saved !== "undefined" ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
   });
 
   const handleAuthSuccess = (newToken, user) => {
@@ -112,12 +124,15 @@ function RootAppContent() {
   // Synchronizers that parse hash to support refreshing securely without throwing errors
   const syncRouteFromHash = () => {
     const hash = window.location.hash;
-    if (!hash || hash === "#/" || hash === "#") {
+    // Strip leading hash and optional slash cleanly: e.g. "#/login" or "#login" -> "login"
+    const cleanHash = hash.replace(/^#[/]?/, "");
+
+    if (!cleanHash || cleanHash === "/" || cleanHash === "") {
       setRouteState("home");
       setSelectedTutorId(null);
-    } else if (hash.startsWith("#/tutors/")) {
-      const parts = hash.split("/");
-      const id = parts[2];
+    } else if (cleanHash.startsWith("tutors/")) {
+      const parts = cleanHash.split("/");
+      const id = parts[1];
       if (id) {
         setRouteState("tutor-details");
         setSelectedTutorId(id);
@@ -126,10 +141,9 @@ function RootAppContent() {
         setSelectedTutorId(null);
       }
     } else {
-      const page = hash.replace("#/", "");
       const validPages = ["tutors", "add-tutor", "my-tutors", "bookings", "login", "register"];
-      if (validPages.includes(page)) {
-        setRouteState(page);
+      if (validPages.includes(cleanHash)) {
+        setRouteState(cleanHash);
         setSelectedTutorId(null);
       } else {
         setRouteState("404");
@@ -180,7 +194,7 @@ function RootAppContent() {
   }, [route]);
 
   // 5. Private Route Security Gate Safeguard
-  const isPrivateRoute = ["add-tutor", "my-tutors", "bookings", "tutor-details"].includes(route);
+  const isPrivateRoute = ["add-tutor", "my-tutors", "bookings"].includes(route);
   useEffect(() => {
     if (isPrivateRoute && !token) {
       toast.info("Secure Area: Please log in using credentials or Google Auth to access tutoring systems.");
