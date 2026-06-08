@@ -8,7 +8,7 @@ import fs from "fs";
 
 dotenv.config();
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || "BnGh2XOxNCD9K1vbzSWu39dxyWAfGdqQ";
 const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || "";
 const DB_NAME = process.env.MONGODB_DB || "portfolio_mediqueue";
@@ -142,10 +142,6 @@ const SEED_TUTORS = [
   }
 ];
 
-const USERS_FILE = path.join(process.cwd(), "users-fallback.json");
-const TUTORS_FILE = path.join(process.cwd(), "tutors-fallback.json");
-const BOOKINGS_FILE = path.join(process.cwd(), "bookings-fallback.json");
-
 const SEED_USERS = [
   {
     _id: "user_seed_01",
@@ -177,107 +173,60 @@ const SEED_USERS = [
   }
 ];
 
-let memoryUsers = [];
-let memoryTutors = [];
-let memoryBookings = [];
-
-function loadBackupFiles() {
-  try {
-    if (fs.existsSync(USERS_FILE)) {
-      memoryUsers = JSON.parse(fs.readFileSync(USERS_FILE, "utf-8"));
-    } else {
-      memoryUsers = [...SEED_USERS];
-      fs.writeFileSync(USERS_FILE, JSON.stringify(memoryUsers, null, 2), "utf-8");
-    }
-
-    if (fs.existsSync(TUTORS_FILE)) {
-      memoryTutors = JSON.parse(fs.readFileSync(TUTORS_FILE, "utf-8"));
-    } else {
-      memoryTutors = [...SEED_TUTORS];
-      fs.writeFileSync(TUTORS_FILE, JSON.stringify(memoryTutors, null, 2), "utf-8");
-    }
-
-    if (fs.existsSync(BOOKINGS_FILE)) {
-      memoryBookings = JSON.parse(fs.readFileSync(BOOKINGS_FILE, "utf-8"));
-    } else {
-      memoryBookings = [];
-      fs.writeFileSync(BOOKINGS_FILE, JSON.stringify(memoryBookings, null, 2), "utf-8");
-    }
-  } catch (err) {
-    console.error("Local filesystem fallback init failed, using RAM:", err.message);
-    memoryUsers = [...SEED_USERS];
-    memoryTutors = [...SEED_TUTORS];
-    memoryBookings = [];
-  }
-}
-
-// Call back loader
-loadBackupFiles();
-
-function persistBackupFiles() {
-  try {
-    fs.writeFileSync(USERS_FILE, JSON.stringify(memoryUsers, null, 2), "utf-8");
-    fs.writeFileSync(TUTORS_FILE, JSON.stringify(memoryTutors, null, 2), "utf-8");
-    fs.writeFileSync(BOOKINGS_FILE, JSON.stringify(memoryBookings, null, 2), "utf-8");
-  } catch (err) {
-    console.error("Failed persisting JSON fallback database:", err.message);
-  }
-}
-
 // MongoDB setup
 let mongoClient = null;
-let lastConnectionError = null;
-let lastConnectionAttempt = 0;
-const RECONNECT_THROTTLE_MS = 30000; // block retry path for 30s top to prevent test timeouts on offline DBs
 
 async function getMongoDB() {
   if (!MONGO_URI) {
-    return null;
-  }
-  const now = Date.now();
-  if (!mongoClient && lastConnectionError && (now - lastConnectionAttempt < RECONNECT_THROTTLE_MS)) {
-    // DB is offline/unreachable; immediately return null memory-fallback to respond in 0ms to grading runners
-    return null;
+    throw new Error("MONGODB_URI or MONGO_URI environment variable is missing. Please declare it in your environment or Vercel config.");
   }
 
   try {
-    lastConnectionAttempt = now;
     if (!mongoClient) {
       const sanitizedUri = MONGO_URI.replace(/:([^@]+)@/, "://****:****@");
       console.log("Connecting to MongoDB Atlas...", sanitizedUri);
       mongoClient = new MongoClient(MONGO_URI, {
-        connectTimeoutMS: 1500, // Fail fast in 1.5s instead of hanging grader for 8s
-        socketTimeoutMS: 20000,
+        connectTimeoutMS: 5000,
+        socketTimeoutMS: 30000,
         maxPoolSize: 10,
       });
       await mongoClient.connect();
       console.log("Successfully connected to MongoDB Atlas!");
-      lastConnectionError = null;
       
-      // Initialize indexes and seed data if db empty
       const db = mongoClient.db(DB_NAME);
+
+      // Seed tutors if empty
       const tutorColl = db.collection("tutors");
-      const count = await tutorColl.countDocuments();
-      if (count === 0) {
-        // Convert local seed format
-        const mongoSeeds = SEED_TUTORS.map(t => {
+      const tutorCount = await tutorColl.countDocuments();
+      if (tutorCount === 0) {
+        const mongoTutorSeeds = SEED_TUTORS.map(t => {
           const { _id, ...rest } = t;
           return { ...rest, originalId: _id };
         });
-        await tutorColl.insertMany(mongoSeeds);
+        await tutorColl.insertMany(mongoTutorSeeds);
         console.log("Seeded MongoDB with initial tutors.");
+      }
+
+      // Seed users if empty
+      const userColl = db.collection("users");
+      const userCount = await userColl.countDocuments();
+      if (userCount === 0) {
+        const mongoUserSeeds = SEED_USERS.map(u => {
+          const { _id, ...rest } = u;
+          return { ...rest, originalId: _id };
+        });
+        await userColl.insertMany(mongoUserSeeds);
+        console.log("Seeded database with initial users.");
       }
     }
     
-    // Run quick ping to verify socket health
     const db = mongoClient.db(DB_NAME);
     await db.command({ ping: 1 });
     return db;
   } catch (err) {
-    console.error("MongoDB Atlas connection trial failed, falling back cleanly to in-memory:", err.message);
-    lastConnectionError = err.message;
-    mongoClient = null; // force clean retry path after throttle period expires
-    return null;
+    console.error("MongoDB Connection failure:", err.message);
+    mongoClient = null; // force retry
+    throw err;
   }
 }
 
@@ -285,25 +234,17 @@ async function getMongoDB() {
 app.get("/api/db-status", async (req, res) => {
   try {
     const db = await getMongoDB();
-    if (db) {
-      res.json({
-        status: "connected",
-        database: DB_NAME,
-        uriSanitized: MONGO_URI.replace(/:([^@]+)@/, "://****:****@"),
-        error: null
-      });
-    } else {
-      res.json({
-        status: "fallback",
-        database: "Local Memory Backup",
-        uriSanitized: MONGO_URI.replace(/:([^@]+)@/, "://****:****@"),
-        error: lastConnectionError || "Failed to make socket handshake"
-      });
-    }
+    res.json({
+      status: "connected",
+      database: DB_NAME,
+      uriSanitized: MONGO_URI.replace(/:([^@]+)@/, "://****:****@"),
+      error: null
+    });
   } catch (err) {
     res.json({
       status: "error",
-      database: "Error state",
+      database: "disconnected",
+      uriSanitized: MONGO_URI ? MONGO_URI.replace(/:([^@]+)@/, "://****:****@") : "none",
       error: err.message
     });
   }
@@ -351,36 +292,19 @@ app.post("/api/auth/register", async (req, res) => {
 
   try {
     const db = await getMongoDB();
-    if (db) {
-      const userColl = db.collection("users");
-      const existingUser = await userColl.findOne({ email });
-      if (existingUser) {
-        res.status(400).json({ message: "An account is already registered with this email" });
-        return;
-      }
-      await userColl.insertOne({
-        name,
-        email,
-        photoUrl: photoUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150",
-        passwordHash: password, // Simple plain text / simulation hash for lightweight school grading
-        createdAt: new Date().toISOString()
-      });
-    } else {
-      // In-Memory
-      const existing = memoryUsers.find(u => u.email === email);
-      if (existing) {
-        res.status(400).json({ message: "An account is already registered with this email" });
-        return;
-      }
-      memoryUsers.push({
-        _id: "user_" + Date.now(),
-        name,
-        email,
-        passwordHash: password,
-        photoUrl: photoUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150"
-      });
-      persistBackupFiles();
+    const userColl = db.collection("users");
+    const existingUser = await userColl.findOne({ email });
+    if (existingUser) {
+      res.status(400).json({ message: "An account is already registered with this email" });
+      return;
     }
+    await userColl.insertOne({
+      name,
+      email,
+      photoUrl: photoUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150",
+      passwordHash: password, // Simple plain text / simulation hash for lightweight school grading
+      createdAt: new Date().toISOString()
+    });
 
     res.status(201).json({ message: "Registration successful! You can log in now." });
   } catch (err) {
@@ -398,14 +322,9 @@ app.post("/api/auth/login", async (req, res) => {
   }
 
   try {
-    let matchedUser = null;
     const db = await getMongoDB();
-    if (db) {
-      const userColl = db.collection("users");
-      matchedUser = await userColl.findOne({ email, passwordHash: password });
-    } else {
-      matchedUser = memoryUsers.find(u => u.email === email && u.passwordHash === password);
-    }
+    const userColl = db.collection("users");
+    const matchedUser = await userColl.findOne({ email, passwordHash: password });
 
     if (!matchedUser) {
       res.status(401).json({ message: "Invalid email or password combination" });
@@ -439,35 +358,20 @@ app.post("/api/auth/google", async (req, res) => {
 
   try {
     const db = await getMongoDB();
-    if (db) {
-      const userColl = db.collection("users");
-      const matched = await userColl.findOne({ email });
-      if (!matched) {
-        const insertUser = {
-          name: cleanName,
-          email,
-          photoUrl: cleanPhoto,
-          passwordHash: "social_google_login",
-          createdAt: new Date().toISOString()
-        };
-        await userColl.insertOne(insertUser);
-      }
-    } else {
-      let matched = memoryUsers.find(u => u.email === email);
-      if (!matched) {
-        matched = {
-          _id: "google_" + Date.now(),
-          name: cleanName,
-          email,
-          passwordHash: "social_google_login",
-          photoUrl: cleanPhoto
-        };
-        memoryUsers.push(matched);
-        persistBackupFiles();
-      }
+    const userColl = db.collection("users");
+    let matched = await userColl.findOne({ email });
+    if (!matched) {
+      matched = {
+        name: cleanName,
+        email,
+        photoUrl: cleanPhoto,
+        passwordHash: "social_google_login",
+        createdAt: new Date().toISOString()
+      };
+      await userColl.insertOne(matched);
     }
 
-    const payload = { email, name: cleanName, photoUrl: cleanPhoto };
+    const payload = { email, name: matched.name, photoUrl: matched.photoUrl };
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
     res.json({ token, user: payload });
   } catch (err) {
@@ -481,78 +385,43 @@ app.get("/api/tutors", async (req, res) => {
 
   try {
     const db = await getMongoDB();
+    const tutorColl = db.collection("tutors");
+    let query = {};
 
-    if (db) {
-      const tutorColl = db.collection("tutors");
-      let query = {};
-
-      if (search) {
-        query.$or = [
-          { name: { $regex: search.toString(), $options: "i" } },
-          { subject: { $regex: search.toString(), $options: "i" } }
-        ];
-      }
-
-      if (email) {
-        query.createdByUserEmail = email.toString();
-      }
-
-      // Filter by sessionStartDate using $gte, $lte
-      if (startDate || endDate) {
-        query.sessionStartDate = {};
-        if (startDate) {
-          query.sessionStartDate.$gte = startDate.toString();
-        }
-        if (endDate) {
-          query.sessionStartDate.$lte = endDate.toString();
-        }
-      }
-
-      let cursor = tutorColl.find(query);
-      if (limit) {
-        cursor = cursor.limit(parseInt(limit.toString(), 10));
-      }
-
-      const tutors = await cursor.toArray();
-      // Map _id to string
-      const sanitized = tutors.map(t => ({
-        ...t,
-        _id: t._id.toString()
-      }));
-      res.json(sanitized);
-    } else {
-      // Memory Fallback Filter
-      let results = [...memoryTutors];
-
-      if (search) {
-        const searchStr = search.toString().toLowerCase();
-        results = results.filter(t => 
-          (t.name && t.name.toLowerCase().includes(searchStr)) || 
-          (t.subject && t.subject.toLowerCase().includes(searchStr))
-        );
-      }
-
-      if (email) {
-        const emailStr = email.toString().toLowerCase();
-        results = results.filter(t => t.createdByUserEmail && t.createdByUserEmail.toLowerCase() === emailStr);
-      }
-
-      if (startDate) {
-        const start = startDate.toString();
-        results = results.filter(t => t.sessionStartDate >= start);
-      }
-
-      if (endDate) {
-        const end = endDate.toString();
-        results = results.filter(t => t.sessionStartDate <= end);
-      }
-
-      if (limit) {
-        results = results.slice(0, parseInt(limit.toString() || "6", 10));
-      }
-
-      res.json(results);
+    if (search) {
+      query.$or = [
+        { name: { $regex: search.toString(), $options: "i" } },
+        { subject: { $regex: search.toString(), $options: "i" } }
+      ];
     }
+
+    if (email) {
+      query.createdByUserEmail = email.toString();
+    }
+
+    // Filter by sessionStartDate using $gte, $lte
+    if (startDate || endDate) {
+      query.sessionStartDate = {};
+      if (startDate) {
+        query.sessionStartDate.$gte = startDate.toString();
+      }
+      if (endDate) {
+        query.sessionStartDate.$lte = endDate.toString();
+      }
+    }
+
+    let cursor = tutorColl.find(query);
+    if (limit) {
+      cursor = cursor.limit(parseInt(limit.toString(), 10));
+    }
+
+    const tutors = await cursor.toArray();
+    // Map _id to string
+    const sanitized = tutors.map(t => ({
+      ...t,
+      _id: t._id.toString()
+    }));
+    res.json(sanitized);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch tutors: " + err.message });
   }
@@ -564,33 +433,24 @@ app.get("/api/tutors/:id", async (req, res) => {
 
   try {
     const db = await getMongoDB();
-    if (db) {
-      let query = {};
-      try {
-        query = { _id: new ObjectId(idStr) };
-      } catch {
-        query = { originalId: idStr }; // support seed ID checks
-      }
-      const tutor = await db.collection("tutors").findOne(query);
-      if (!tutor) {
-         // Maybe seed id search
-         const seedTry = await db.collection("tutors").findOne({ originalId: idStr });
-         if (seedTry) {
-           res.json({ ...seedTry, _id: seedTry._id.toString() });
-           return;
-         }
-         res.status(404).json({ message: "Tutor not found" });
-         return;
-      }
-      res.json({ ...tutor, _id: tutor._id.toString() });
-    } else {
-      const tutor = memoryTutors.find(t => t._id === idStr);
-      if (!tutor) {
-        res.status(404).json({ message: "Tutor not found" });
-        return;
-      }
-      res.json(tutor);
+    let query = {};
+    try {
+      query = { _id: new ObjectId(idStr) };
+    } catch {
+      query = { originalId: idStr }; // support seed ID checks
     }
+    const tutor = await db.collection("tutors").findOne(query);
+    if (!tutor) {
+       // Maybe seed id search
+       const seedTry = await db.collection("tutors").findOne({ originalId: idStr });
+       if (seedTry) {
+         res.json({ ...seedTry, _id: seedTry._id.toString() });
+         return;
+       }
+       res.status(404).json({ message: "Tutor not found" });
+       return;
+    }
+    res.json({ ...tutor, _id: tutor._id.toString() });
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch tutor details: " + err.message });
   }
@@ -637,24 +497,11 @@ app.post("/api/tutors", authenticateToken, async (req, res) => {
 
   try {
     const db = await getMongoDB();
-    if (db) {
-      const result = await db.collection("tutors").insertOne(tutorData);
-      res.status(201).json({
-        message: "Tutor registration saved successfully!",
-        tutor: { _id: result.insertedId.toString(), ...tutorData }
-      });
-    } else {
-      const newTutor = {
-        _id: "tutor_" + Date.now(),
-        ...tutorData
-      };
-      memoryTutors.push(newTutor);
-      persistBackupFiles();
-      res.status(201).json({
-        message: "Tutor registration saved successfully!",
-        tutor: newTutor
-      });
-    }
+    const result = await db.collection("tutors").insertOne(tutorData);
+    res.status(201).json({
+      message: "Tutor registration saved successfully!",
+      tutor: { _id: result.insertedId.toString(), ...tutorData }
+    });
   } catch (err) {
     res.status(500).json({ message: "Saving tutor details failed: " + err.message });
   }
@@ -672,48 +519,28 @@ app.patch("/api/tutors/:id", authenticateToken, async (req, res) => {
 
   try {
     const db = await getMongoDB();
-    if (db) {
-      let query = {};
-      try {
-        query = { _id: new ObjectId(tutorId) };
-      } catch {
-        query = { originalId: tutorId };
-      }
-
-      // Check ownership
-      const tutor = await db.collection("tutors").findOne(query);
-      if (!tutor) {
-        res.status(404).json({ message: "Tutor entry not found" });
-        return;
-      }
-
-      if (tutor.createdByUserEmail !== req.user.email) {
-        res.status(403).json({ message: "You are not authorized to edit this tutor entry" });
-        return;
-      }
-
-      await db.collection("tutors").updateOne(query, { $set: updates });
-      const updated = await db.collection("tutors").findOne(query);
-      res.json({ message: "Tutor updated successfully!", tutor: { ...updated, _id: updated._id.toString() } });
-    } else {
-      const idx = memoryTutors.findIndex(t => t._id === tutorId);
-      if (idx === -1) {
-        res.status(404).json({ message: "Tutor entry not found" });
-        return;
-      }
-
-      if (memoryTutors[idx].createdByUserEmail !== req.user.email) {
-        res.status(403).json({ message: "You are not authorized to edit this tutor entry" });
-        return;
-      }
-
-      memoryTutors[idx] = {
-        ...memoryTutors[idx],
-        ...updates
-      };
-      persistBackupFiles();
-      res.json({ message: "Tutor updated successfully!", tutor: memoryTutors[idx] });
+    let query = {};
+    try {
+      query = { _id: new ObjectId(tutorId) };
+    } catch {
+      query = { originalId: tutorId };
     }
+
+    // Check ownership
+    const tutor = await db.collection("tutors").findOne(query);
+    if (!tutor) {
+      res.status(404).json({ message: "Tutor entry not found" });
+      return;
+    }
+
+    if (tutor.createdByUserEmail !== req.user.email) {
+      res.status(403).json({ message: "You are not authorized to edit this tutor entry" });
+      return;
+    }
+
+    await db.collection("tutors").updateOne(query, { $set: updates });
+    const updated = await db.collection("tutors").findOne(query);
+    res.json({ message: "Tutor updated successfully!", tutor: { ...updated, _id: updated._id.toString() } });
   } catch (err) {
     res.status(500).json({ message: "Update action failed: " + err.message });
   }
@@ -725,43 +552,26 @@ app.delete("/api/tutors/:id", authenticateToken, async (req, res) => {
 
   try {
     const db = await getMongoDB();
-    if (db) {
-      let query = {};
-      try {
-        query = { _id: new ObjectId(tutorId) };
-      } catch {
-        query = { originalId: tutorId };
-      }
-
-      const tutor = await db.collection("tutors").findOne(query);
-      if (!tutor) {
-        res.status(404).json({ message: "Tutor entry not found" });
-        return;
-      }
-
-      if (tutor.createdByUserEmail !== req.user.email) {
-        res.status(403).json({ message: "You are not authorized to delete this tutor entry" });
-        return;
-      }
-
-      await db.collection("tutors").deleteOne(query);
-      res.json({ message: "Tutor entry deleted successfully!" });
-    } else {
-      const idx = memoryTutors.findIndex(t => t._id === tutorId);
-      if (idx === -1) {
-        res.status(404).json({ message: "Tutor entry not found" });
-        return;
-      }
-
-      if (memoryTutors[idx].createdByUserEmail !== req.user.email) {
-        res.status(403).json({ message: "You are not authorized to delete this tutor entry" });
-        return;
-      }
-
-      memoryTutors.splice(idx, 1);
-      persistBackupFiles();
-      res.json({ message: "Tutor entry deleted successfully!" });
+    let query = {};
+    try {
+      query = { _id: new ObjectId(tutorId) };
+    } catch {
+      query = { originalId: tutorId };
     }
+
+    const tutor = await db.collection("tutors").findOne(query);
+    if (!tutor) {
+      res.status(404).json({ message: "Tutor entry not found" });
+      return;
+    }
+
+    if (tutor.createdByUserEmail !== req.user.email) {
+      res.status(403).json({ message: "You are not authorized to delete this tutor entry" });
+      return;
+    }
+
+    await db.collection("tutors").deleteOne(query);
+    res.json({ message: "Tutor entry deleted successfully!" });
   } catch (err) {
     res.status(500).json({ message: "Delete action failed: " + err.message });
   }
@@ -783,98 +593,54 @@ app.post("/api/bookings", authenticateToken, async (req, res) => {
     const clientVirtualDate = req.headers["x-virtual-date"] || req.headers["x-system-date"] || virtualDate;
     const currentDateString = clientVirtualDate || "2026-05-21";
 
-    if (db) {
-      let q = {};
-      try {
-        q = { _id: new ObjectId(tutorId) };
-      } catch {
-        q = { originalId: tutorId };
-      }
-
-      const tutor = await db.collection("tutors").findOne(q);
-      if (!tutor) {
-        res.status(404).json({ message: "The specified tutor was not found" });
-        return;
-      }
-
-      // Date Restriction: "If current date is earlier than session date, booking is not allowed"
-      if (currentDateString < tutor.sessionStartDate) {
-        res.status(400).json({
-          message: "Booking is not available yet for this tutor"
-        });
-        return;
-      }
-
-      // Slot check
-      if (tutor.totalSlots === undefined || tutor.totalSlots <= 0) {
-        res.status(400).json({
-          message: "No available slots left"
-        });
-        return;
-      }
-
-      // Decrement slot in tutor
-      await db.collection("tutors").updateOne(q, { $inc: { totalSlots: -1 } });
-
-      // Save Booking
-      const bookingData = {
-        tutorId: tutor._id.toString(),
-        tutorName: tutor.name,
-        studentName,
-        studentPhone,
-        studentEmail: req.user.email,
-        bookingStatus: "booked",
-        bookedAt: new Date().toISOString()
-      };
-
-      const result = await db.collection("bookings").insertOne(bookingData);
-      res.status(201).json({
-        message: "Your learning slot has been successfully booked!",
-        booking: { _id: result.insertedId.toString(), ...bookingData }
-      });
-    } else {
-      // Memory Booking Flow
-      const tutor = memoryTutors.find(t => t._id === tutorId);
-      if (!tutor) {
-        res.status(404).json({ message: "The specified tutor was not found" });
-        return;
-      }
-
-      if (currentDateString < tutor.sessionStartDate) {
-        res.status(400).json({
-          message: "Booking is not available yet for this tutor"
-        });
-        return;
-      }
-
-      if (tutor.totalSlots <= 0) {
-        res.status(400).json({
-          message: "No available slots left"
-        });
-        return;
-      }
-
-      // Decrement
-      tutor.totalSlots -= 1;
-
-      const newBooking = {
-        _id: "book_" + Date.now(),
-        tutorId: tutor._id,
-        tutorName: tutor.name,
-        studentName,
-        studentPhone,
-        studentEmail: req.user.email,
-        bookingStatus: "booked",
-        bookedAt: new Date().toISOString()
-      };
-
-      memoryBookings.push(newBooking);
-      persistBackupFiles();
-      res.status(201).json({
-        message: "Your learning slot has been successfully booked!",
-        booking: newBooking
-      });
+    let q = {};
+    try {
+      q = { _id: new ObjectId(tutorId) };
+    } catch {
+      q = { originalId: tutorId };
     }
+
+    const tutor = await db.collection("tutors").findOne(q);
+    if (!tutor) {
+      res.status(404).json({ message: "The specified tutor was not found" });
+      return;
+    }
+
+    // Date Restriction: "If current date is earlier than session date, booking is not allowed"
+    if (currentDateString < tutor.sessionStartDate) {
+      res.status(400).json({
+        message: "Booking is not available yet for this tutor"
+      });
+      return;
+    }
+
+    // Slot check
+    if (tutor.totalSlots === undefined || tutor.totalSlots <= 0) {
+      res.status(400).json({
+        message: "No available slots left"
+      });
+      return;
+    }
+
+    // Decrement slot in tutor
+    await db.collection("tutors").updateOne(q, { $inc: { totalSlots: -1 } });
+
+    // Save Booking
+    const bookingData = {
+      tutorId: tutor._id.toString(),
+      tutorName: tutor.name,
+      studentName,
+      studentPhone,
+      studentEmail: req.user.email,
+      bookingStatus: "booked",
+      bookedAt: new Date().toISOString()
+    };
+
+    const result = await db.collection("bookings").insertOne(bookingData);
+    res.status(201).json({
+      message: "Your learning slot has been successfully booked!",
+      booking: { _id: result.insertedId.toString(), ...bookingData }
+    });
   } catch (err) {
     res.status(500).json({ message: "Booking generation failed: " + err.message });
   }
@@ -884,17 +650,12 @@ app.post("/api/bookings", authenticateToken, async (req, res) => {
 app.get("/api/bookings/my", authenticateToken, async (req, res) => {
   try {
     const db = await getMongoDB();
-    if (db) {
-      const bookings = await db.collection("bookings").find({ studentEmail: req.user.email }).toArray();
-      const sanitized = bookings.map(b => ({
-        ...b,
-        _id: b._id.toString()
-      }));
-      res.json(sanitized);
-    } else {
-      const myBooks = memoryBookings.filter(b => b.studentEmail === req.user.email);
-      res.json(myBooks);
-    }
+    const bookings = await db.collection("bookings").find({ studentEmail: req.user.email }).toArray();
+    const sanitized = bookings.map(b => ({
+      ...b,
+      _id: b._id.toString()
+    }));
+    res.json(sanitized);
   } catch (err) {
     res.status(500).json({ message: "Failed to retrieve your booked sessions: " + err.message });
   }
@@ -906,61 +667,37 @@ app.patch("/api/bookings/:id/cancel", authenticateToken, async (req, res) => {
 
   try {
     const db = await getMongoDB();
-    if (db) {
-      let bQuery = {};
-      try {
-        bQuery = { _id: new ObjectId(bookingId) };
-      } catch {
-        bQuery = { _id: bookingId };
-      }
-
-      const booking = await db.collection("bookings").findOne(bQuery);
-      if (!booking) {
-        res.status(404).json({ message: "Booking record not found" });
-        return;
-      }
-
-      if (booking.studentEmail !== req.user.email) {
-        res.status(403).json({ message: "Unauthorized request" });
-        return;
-      }
-
-      // Update booking status
-      await db.collection("bookings").updateOne(bQuery, { $set: { bookingStatus: "cancelled" } });
-
-      // Find associated tutor and increment slot back
-      let tQuery = {};
-      try {
-        tQuery = { _id: new ObjectId(booking.tutorId) };
-      } catch {
-        tQuery = { _id: booking.tutorId };
-      }
-      await db.collection("tutors").updateOne(tQuery, { $inc: { totalSlots: 1 } });
-
-      res.json({ message: "Booking cancelled successfully" });
-    } else {
-      const bIdx = memoryBookings.findIndex(b => b._id === bookingId);
-      if (bIdx === -1) {
-        res.status(404).json({ message: "Booking record not found" });
-        return;
-      }
-
-      if (memoryBookings[bIdx].studentEmail !== req.user.email) {
-        res.status(403).json({ message: "Unauthorized request" });
-        return;
-      }
-
-      memoryBookings[bIdx].bookingStatus = "cancelled";
-
-      // Increment slot back
-      const tutor = memoryTutors.find(t => t._id === memoryBookings[bIdx].tutorId);
-      if (tutor) {
-        tutor.totalSlots += 1;
-      }
-
-      persistBackupFiles();
-      res.json({ message: "Booking cancelled successfully" });
+    let bQuery = {};
+    try {
+      bQuery = { _id: new ObjectId(bookingId) };
+    } catch {
+      bQuery = { _id: bookingId };
     }
+
+    const booking = await db.collection("bookings").findOne(bQuery);
+    if (!booking) {
+      res.status(404).json({ message: "Booking record not found" });
+      return;
+    }
+
+    if (booking.studentEmail !== req.user.email) {
+      res.status(403).json({ message: "Unauthorized request" });
+      return;
+    }
+
+    // Update booking status
+    await db.collection("bookings").updateOne(bQuery, { $set: { bookingStatus: "cancelled" } });
+
+    // Find associated tutor and increment slot back
+    let tQuery = {};
+    try {
+      tQuery = { _id: new ObjectId(booking.tutorId) };
+    } catch {
+      tQuery = { _id: booking.tutorId };
+    }
+    await db.collection("tutors").updateOne(tQuery, { $inc: { totalSlots: 1 } });
+
+    res.json({ message: "Booking cancelled successfully" });
   } catch (err) {
     res.status(500).json({ message: "Cancellation action failed: " + err.message });
   }
