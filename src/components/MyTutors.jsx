@@ -299,7 +299,7 @@ export default function MyTutors({ currentUser, token, setRoute }) {
                   Update Tutor Properties
                 </h3>
                 <p className="text-xs text-slate-505">
-                  Adjust active slots, schedules, and hourly fee. All changes will commit straight to MongoDB.
+                  Adjust active slots, schedules, and hourly fee. All changes will commit securely.
                 </p>
               </div>
 
