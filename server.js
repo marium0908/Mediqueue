@@ -1,6 +1,5 @@
 import express from "express";
 import path from "path";
-import { createServer as createViteServer } from "vite";
 import { MongoClient, ObjectId } from "mongodb";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
@@ -318,8 +317,9 @@ async function getMongoDB() {
       const sanitizedUri = MONGO_URI.replace(/:([^@]+)@/, "://****:****@");
       console.log("Connecting to MongoDB Atlas...", sanitizedUri);
       mongoClient = new MongoClient(MONGO_URI, {
-        connectTimeoutMS: 3000,
-        socketTimeoutMS: 15000,
+        connectTimeoutMS: 2500,
+        socketTimeoutMS: 2500,
+        serverSelectionTimeoutMS: 2500,
         maxPoolSize: 10,
       });
       await mongoClient.connect();
@@ -858,6 +858,7 @@ async function initializeApp() {
 
   if (process.env.NODE_ENV !== "production") {
     // Development Mode
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
