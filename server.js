@@ -173,12 +173,144 @@ const SEED_USERS = [
   }
 ];
 
+// In-Memory Fallback State Management
+const memTutors = [...SEED_TUTORS];
+const memUsers = [...SEED_USERS];
+const memBookings = [];
+
+let isFallbackActive = false;
+let fallbackReason = null;
+
+function matchQuery(item, query) {
+  if (!query || Object.keys(query).length === 0) return true;
+  for (let key in query) {
+    if (key === "$or") {
+      const orConditions = query[key];
+      if (Array.isArray(orConditions)) {
+        const matched = orConditions.some(cond => matchQuery(item, cond));
+        if (!matched) return false;
+      }
+      continue;
+    }
+
+    let val = query[key];
+    
+    if (key === "sessionStartDate" && val && typeof val === "object") {
+      const itemVal = item[key];
+      if (val.$gte && !(itemVal >= val.$gte)) return false;
+      if (val.$lte && !(itemVal <= val.$lte)) return false;
+      continue;
+    }
+
+    if (val && typeof val === "object" && val.$regex) {
+      const regex = new RegExp(val.$regex, val.$options || "");
+      if (!regex.test(item[key] || "")) return false;
+      continue;
+    }
+
+    // Simple value comparison
+    let itemValue = item[key];
+    if (String(itemValue) !== String(val)) {
+      if (key === "_id" && (String(item.originalId) === String(val) || String(item._id) === String(val))) {
+        continue;
+      }
+      return false;
+    }
+  }
+  return true;
+}
+
+class MemCollection {
+  constructor(name, array) {
+    this.name = name;
+    this.array = array;
+  }
+
+  async countDocuments() {
+    return this.array.length;
+  }
+
+  async insertMany(items) {
+    const enriched = items.map(item => {
+      const id = item._id || "mem_" + Math.random().toString(36).substr(2, 9);
+      const res = { _id: id, ...item };
+      this.array.push(res);
+      return res;
+    });
+    return { insertedCount: enriched.length };
+  }
+
+  async insertOne(item) {
+    const id = item._id || "mem_" + Math.random().toString(36).substr(2, 9);
+    const enriched = { _id: id, ...item };
+    this.array.push(enriched);
+    return { insertedId: id };
+  }
+
+  async findOne(query) {
+    const found = this.array.find(item => matchQuery(item, query));
+    return found ? { ...found } : null;
+  }
+
+  find(query) {
+    let filtered = this.array.filter(item => matchQuery(item, query));
+    
+    const chain = {
+      limit: (n) => {
+        filtered = filtered.slice(0, n);
+        return chain;
+      },
+      toArray: async () => {
+        return filtered.map(item => ({ ...item }));
+      }
+    };
+    return chain;
+  }
+
+  async updateOne(query, update) {
+    const itemIndex = this.array.findIndex(item => matchQuery(item, query));
+    if (itemIndex === -1) return { matchedCount: 0, modifiedCount: 0 };
+
+    const item = this.array[itemIndex];
+    if (update.$set) {
+      this.array[itemIndex] = { ...item, ...update.$set };
+    }
+    if (update.$inc) {
+      for (let k in update.$inc) {
+        this.array[itemIndex][k] = (this.array[itemIndex][k] || 0) + update.$inc[k];
+      }
+    }
+    return { matchedCount: 1, modifiedCount: 1 };
+  }
+
+  async deleteOne(query) {
+    const itemIndex = this.array.findIndex(item => matchQuery(item, query));
+    if (itemIndex === -1) return { deletedCount: 0 };
+    this.array.splice(itemIndex, 1);
+    return { deletedCount: 1 };
+  }
+}
+
+class MemDb {
+  collection(name) {
+    if (name === "users") return new MemCollection("users", memUsers);
+    if (name === "tutors") return new MemCollection("tutors", memTutors);
+    return new MemCollection(name, memBookings);
+  }
+  async command(cmd) {
+    return { ok: 1 };
+  }
+}
+
 // MongoDB setup
 let mongoClient = null;
 
 async function getMongoDB() {
   if (!MONGO_URI) {
-    throw new Error("MONGODB_URI or MONGO_URI environment variable is missing. Please declare it in your environment or Vercel config.");
+    console.log("No MONGO_URI specified. Activating in-memory local fallback.");
+    isFallbackActive = true;
+    fallbackReason = "MONGODB_URI key is empty";
+    return new MemDb();
   }
 
   try {
@@ -186,8 +318,8 @@ async function getMongoDB() {
       const sanitizedUri = MONGO_URI.replace(/:([^@]+)@/, "://****:****@");
       console.log("Connecting to MongoDB Atlas...", sanitizedUri);
       mongoClient = new MongoClient(MONGO_URI, {
-        connectTimeoutMS: 5000,
-        socketTimeoutMS: 30000,
+        connectTimeoutMS: 3000,
+        socketTimeoutMS: 15000,
         maxPoolSize: 10,
       });
       await mongoClient.connect();
@@ -222,11 +354,16 @@ async function getMongoDB() {
     
     const db = mongoClient.db(DB_NAME);
     await db.command({ ping: 1 });
+    isFallbackActive = false;
+    fallbackReason = null;
     return db;
   } catch (err) {
-    console.error("MongoDB Connection failure:", err.message);
-    mongoClient = null; // force retry
-    throw err;
+    console.warn("MongoDB Connection failure: ", err.message);
+    console.warn("Falling back to reliable in-memory database fallback mode.");
+    isFallbackActive = true;
+    fallbackReason = err.message;
+    mongoClient = null; // force reconnect re-evaluation
+    return new MemDb();
   }
 }
 
@@ -234,12 +371,21 @@ async function getMongoDB() {
 app.get("/api/db-status", async (req, res) => {
   try {
     const db = await getMongoDB();
-    res.json({
-      status: "connected",
-      database: DB_NAME,
-      uriSanitized: MONGO_URI.replace(/:([^@]+)@/, "://****:****@"),
-      error: null
-    });
+    if (isFallbackActive) {
+      res.json({
+        status: "fallback",
+        database: "In-Memory Fallback Active",
+        uriSanitized: MONGO_URI ? MONGO_URI.replace(/:([^@]+)@/, "://****:****@") : "none",
+        error: "MongoDB Connection failed: " + fallbackReason + " (Switched to safe local database state successfully)"
+      });
+    } else {
+      res.json({
+        status: "connected",
+        database: DB_NAME,
+        uriSanitized: MONGO_URI.replace(/:([^@]+)@/, "://****:****@"),
+        error: null
+      });
+    }
   } catch (err) {
     res.json({
       status: "error",
