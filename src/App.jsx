@@ -269,17 +269,6 @@ function RootAppContent() {
 
             {/* Right Action buttons */}
             <div className="flex items-center gap-3 sm:gap-4">
-              {/* Live Database status indicator badge */}
-              <div 
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border bg-slate-50 border-slate-200 dark:bg-slate-900 dark:border-slate-800 text-[10px] font-mono leading-none transition-all duration-200"
-                title={dbStatus.status === "connected" ? `Connected directly to MongoDB Live. Database name: ${dbStatus.database || "portfolio"}` : `Fallback Active: ${dbStatus.error || "No MongoDB URI set"}`}
-              >
-                <span className={`inline-block h-2 w-2 rounded-full ${dbStatus.status === "connected" ? "bg-emerald-500 animate-pulse" : dbStatus.status === "fallback" ? "bg-amber-400" : "bg-rose-500"}`} />
-                <span className="text-slate-600 dark:text-slate-400 font-bold tracking-tight">
-                  DB: {dbStatus.status === "connected" ? "MongoDB Live" : dbStatus.status === "fallback" ? "Fallback Mode" : "Checking..."}
-                </span>
-              </div>
-
               {/* Light Dark Mode button */}
               <button
                 onClick={toggleTheme}
